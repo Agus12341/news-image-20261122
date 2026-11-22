@@ -25,7 +25,18 @@ def main() -> int:
 
     with open(source, "rb") as fh:
         head = fh.read(8)
-    if not (head.startswith(PNG_SIGNATURE) or head.startswith(JPEG_SIGNATURE)):
+        fh.seek(-12, os.SEEK_END)
+        tail = fh.read(12)
+    if head.startswith(PNG_SIGNATURE):
+        # a whole PNG ends with the IEND chunk: length 0, "IEND", its CRC
+        if not tail.endswith(b"IEND\xaeB\x60\x82"):
+            print("entry.png is a PNG but looks truncated", file=sys.stderr)
+            return 1
+    elif head.startswith(JPEG_SIGNATURE):
+        if not tail.endswith(b"\xff\xd9"):
+            print("entry.png is a JPEG but looks truncated", file=sys.stderr)
+            return 1
+    else:
         print("entry.png is neither a PNG nor a JPEG", file=sys.stderr)
         return 1
 
